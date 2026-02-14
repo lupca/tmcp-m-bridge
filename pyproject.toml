@@ -1,0 +1,14 @@
+[project]
+name = "tmcp-m-bridge"
+version = "0.1.0"
+description = "MCP Server for PocketBase integration"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "httpx>=0.27.0",
+    "mcp[sse]>=1.26.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.scripts]
+tmcp-m-bridge = "server:main"
