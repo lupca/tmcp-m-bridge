@@ -1,6 +1,6 @@
 import json
 import httpx
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 class PocketBaseClient:
     def __init__(self, base_url: str, user: str, password: str):
@@ -81,30 +81,84 @@ class PocketBaseClient:
             raise RuntimeError(f"Request failed: {e}")
 
     def list_collections(self) -> List[Dict[str, Any]]:
-        # Use standard API to list collections
+        """List all available PocketBase collections."""
         return self._request("GET", "/api/collections")["items"]
 
     def get_collection_schema(self, collection_name_or_id: str) -> Dict[str, Any]:
-        # Use standard API to get collection details
+        """Get full schema details for a specific collection."""
         return self._request("GET", f"/api/collections/{collection_name_or_id}")
 
-    def list_records(self, collection: str, page: int = 1, per_page: int = 30, filter_str: str = "") -> Dict[str, Any]:
-        params = {
-            "page": page,
-            "perPage": per_page,
-            "filter": filter_str
-        }
+    def list_records(
+        self,
+        collection: str,
+        page: int = 1,
+        per_page: int = 30,
+        filter_str: str = "",
+        sort: str = "",
+        expand: str = "",
+        fields: str = "",
+    ) -> Dict[str, Any]:
+        """List records with pagination, filtering, sorting, expand, and field selection.
+
+        Args:
+            collection: Collection name or ID.
+            page: Page number (1-based).
+            per_page: Number of records per page (max 500).
+            filter_str: PB filter expression, e.g. "status = 'Done'".
+            sort: Comma-separated fields, prefix with - for DESC, e.g. "-created,name".
+            expand: Comma-separated relation fields to expand, e.g. "campaignId,worksheetId".
+            fields: Comma-separated field names to return, e.g. "id,name,created".
+        """
+        params: Dict[str, Any] = {"page": page, "perPage": per_page}
+        if filter_str:
+            params["filter"] = filter_str
+        if sort:
+            params["sort"] = sort
+        if expand:
+            params["expand"] = expand
+        if fields:
+            params["fields"] = fields
         return self._request("GET", f"/api/collections/{collection}/records", params=params)
 
-    def get_record(self, collection: str, record_id: str) -> Dict[str, Any]:
-        return self._request("GET", f"/api/collections/{collection}/records/{record_id}")
+    def get_record(
+        self,
+        collection: str,
+        record_id: str,
+        expand: str = "",
+        fields: str = "",
+    ) -> Dict[str, Any]:
+        """Retrieve a single record by ID with optional expand and field selection.
+
+        Args:
+            collection: Collection name or ID.
+            record_id: The record ID.
+            expand: Comma-separated relation fields to expand.
+            fields: Comma-separated field names to return.
+        """
+        params: Dict[str, Any] = {}
+        if expand:
+            params["expand"] = expand
+        if fields:
+            params["fields"] = fields
+        return self._request("GET", f"/api/collections/{collection}/records/{record_id}", params=params)
 
     def create_record(self, collection: str, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Create a new record in the specified collection."""
         return self._request("POST", f"/api/collections/{collection}/records", json=data)
 
     def update_record(self, collection: str, record_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Update an existing record by ID."""
         return self._request("PATCH", f"/api/collections/{collection}/records/{record_id}", json=data)
 
     def delete_record(self, collection: str, record_id: str) -> bool:
+        """Delete a record by ID."""
         self._request("DELETE", f"/api/collections/{collection}/records/{record_id}")
         return True
+
+    def count_records(self, collection: str, filter_str: str = "") -> int:
+        """Get total count of records in a collection (with optional filter).
+
+        Uses perPage=1 to minimize data transfer, returns totalItems.
+        """
+        result = self.list_records(collection, page=1, per_page=1, filter_str=filter_str)
+        return result.get("totalItems", 0)

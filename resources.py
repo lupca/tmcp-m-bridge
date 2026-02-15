@@ -20,6 +20,24 @@ def get_resource_collection_schema(collection: str) -> str:
     except Exception as e:
         return f"Error fetching schema for {collection}: {e}"
 
+@mcp.resource("pocketbase://{collection}/records")
+def list_collection_records(collection: str) -> str:
+    """Returns the first page of records for a collection (up to 30)."""
+    try:
+        result = pb_client.list_records(collection, page=1, per_page=30, sort="-created")
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        return f"Error listing records for {collection}: {e}"
+
+@mcp.resource("pocketbase://{collection}/count")
+def get_collection_count(collection: str) -> str:
+    """Returns the total number of records in a collection."""
+    try:
+        count = pb_client.count_records(collection)
+        return json.dumps({"collection": collection, "totalItems": count}, indent=2)
+    except Exception as e:
+        return f"Error counting records for {collection}: {e}"
+
 @mcp.resource("pocketbase://{collection}/{record_id}")
 def get_resource_record(collection: str, record_id: str) -> str:
     """Returns a specific record by ID."""

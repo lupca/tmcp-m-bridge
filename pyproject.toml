@@ -12,3 +12,8 @@ dependencies = [
 
 [project.scripts]
 tmcp-m-bridge = "server:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+]
