@@ -55,6 +55,7 @@ def list_records(
     sort: str = "",
     expand: str = "",
     fields: str = "",
+    auth_token: str = "",
 ) -> str:
     """Lists records in a collection with pagination, filtering, sorting, and relation expansion.
 
@@ -66,9 +67,13 @@ def list_records(
         sort: Comma-separated field names. Prefix with - for DESC (e.g. "-created", "name,-updated")
         expand: Comma-separated relation field names to resolve inline (e.g. "campaignId", "worksheetId,campaignId")
         fields: Comma-separated field names to include in response (e.g. "id,name,status")
+        auth_token: Optional auth token from the frontend user. If provided, uses this instead of bridge credentials.
     """
     try:
-        result = pb_client.list_records(collection, page, per_page, filter, sort, expand, fields)
+        if auth_token:
+            result = pb_client.list_records_with_token(collection, auth_token, page, per_page, filter, sort, expand, fields)
+        else:
+            result = pb_client.list_records(collection, page, per_page, filter, sort, expand, fields)
         return json.dumps(result, indent=2)
     except Exception as e:
         return f"Error: {e}"
@@ -79,6 +84,7 @@ def get_record(
     record_id: str,
     expand: str = "",
     fields: str = "",
+    auth_token: str = "",
 ) -> str:
     """Retrieves a single record by its ID, with optional relation expansion.
 
@@ -87,53 +93,69 @@ def get_record(
         record_id: The record's unique ID
         expand: Comma-separated relation fields to resolve (e.g. "worksheetId")
         fields: Comma-separated fields to return (e.g. "id,name")
+        auth_token: Optional auth token from the frontend user. If provided, uses this instead of bridge credentials.
     """
     try:
-        record = pb_client.get_record(collection, record_id, expand, fields)
+        if auth_token:
+            record = pb_client.get_record_with_token(collection, record_id, auth_token, expand, fields)
+        else:
+            record = pb_client.get_record(collection, record_id, expand, fields)
         return json.dumps(record, indent=2)
     except Exception as e:
         return f"Error: {e}"
 
 @mcp.tool()
-def create_record(collection: str, data: Dict[str, Any]) -> str:
+def create_record(collection: str, data: Dict[str, Any], auth_token: str = "") -> str:
     """Creates a new record in the specified collection.
     IMPORTANT: Call get_collection_schema first to know required fields and types.
 
     Args:
         collection: Collection name
         data: Record data as a dict (e.g. {"name": "My Campaign", "worksheetId": "abc123"})
+        auth_token: Optional auth token from the frontend user.
     """
     try:
-        record = pb_client.create_record(collection, data)
+        if auth_token:
+            record = pb_client.create_record_with_token(collection, data, auth_token)
+        else:
+            record = pb_client.create_record(collection, data)
         return json.dumps(record, indent=2)
     except Exception as e:
         return f"Error: {e}"
 
 @mcp.tool()
-def update_record(collection: str, record_id: str, data: Dict[str, Any]) -> str:
+def update_record(collection: str, record_id: str, data: Dict[str, Any], auth_token: str = "") -> str:
     """Updates an existing record. Only include fields you want to change.
 
     Args:
         collection: Collection name
         record_id: The record's unique ID
         data: Fields to update (e.g. {"status": "Done", "week": 3})
+        auth_token: Optional auth token from the frontend user.
     """
     try:
-        record = pb_client.update_record(collection, record_id, data)
+        if auth_token:
+            record = pb_client.update_record_with_token(collection, record_id, data, auth_token)
+        else:
+            record = pb_client.update_record(collection, record_id, data)
         return json.dumps(record, indent=2)
     except Exception as e:
         return f"Error: {e}"
 
 @mcp.tool()
-def delete_record(collection: str, record_id: str) -> str:
+def delete_record(collection: str, record_id: str, auth_token: str = "") -> str:
     """Deletes a record by ID. This action cannot be undone.
 
     Args:
         collection: Collection name
         record_id: The record's unique ID
+        auth_token: Optional auth token from the frontend user.
     """
     try:
-        pb_client.delete_record(collection, record_id)
+        if auth_token:
+            pb_client.delete_record_with_token(collection, record_id, auth_token)
+        else:
+            pb_client.delete_record(collection, record_id)
         return f"Successfully deleted record {record_id} from {collection}"
     except Exception as e:
         return f"Error: {e}"

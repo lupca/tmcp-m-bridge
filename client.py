@@ -155,6 +155,83 @@ class PocketBaseClient:
         self._request("DELETE", f"/api/collections/{collection}/records/{record_id}")
         return True
 
+    # --- Token-forwarding methods ---
+
+    def _request_with_token(self, method: str, endpoint: str, token: str, **kwargs) -> Any:
+        """Make a request using an externally provided auth token (from the frontend user)."""
+        url = f"{self.base_url}{endpoint}"
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+        }
+        if "headers" in kwargs:
+            headers.update(kwargs["headers"])
+            del kwargs["headers"]
+
+        try:
+            response = self.client.request(method, url, headers=headers, **kwargs)
+            response.raise_for_status()
+            return response.json() if response.content else None
+        except httpx.HTTPStatusError as e:
+            error_message = None
+            try:
+                error_data = e.response.json()
+                error_message = f"PocketBase API Error: {json.dumps(error_data, indent=2)}"
+            except Exception:
+                pass
+            raise RuntimeError(error_message or f"HTTP Error: {e}")
+        except Exception as e:
+            raise RuntimeError(f"Request failed: {e}")
+
+    def get_record_with_token(
+        self, collection: str, record_id: str, token: str,
+        expand: str = "", fields: str = "",
+    ) -> Dict[str, Any]:
+        """Retrieve a single record using an external auth token."""
+        params: Dict[str, Any] = {}
+        if expand:
+            params["expand"] = expand
+        if fields:
+            params["fields"] = fields
+        return self._request_with_token(
+            "GET", f"/api/collections/{collection}/records/{record_id}",
+            token, params=params,
+        )
+
+    def list_records_with_token(
+        self, collection: str, token: str,
+        page: int = 1, per_page: int = 30,
+        filter_str: str = "", sort: str = "",
+        expand: str = "", fields: str = "",
+    ) -> Dict[str, Any]:
+        """List records using an external auth token."""
+        params: Dict[str, Any] = {"page": page, "perPage": per_page}
+        if filter_str:
+            params["filter"] = filter_str
+        if sort:
+            params["sort"] = sort
+        if expand:
+            params["expand"] = expand
+        if fields:
+            params["fields"] = fields
+        return self._request_with_token(
+            "GET", f"/api/collections/{collection}/records",
+            token, params=params,
+        )
+
+    def create_record_with_token(self, collection: str, data: Dict[str, Any], token: str) -> Dict[str, Any]:
+        """Create a new record using an external auth token."""
+        return self._request_with_token("POST", f"/api/collections/{collection}/records", token, json=data)
+
+    def update_record_with_token(self, collection: str, record_id: str, data: Dict[str, Any], token: str) -> Dict[str, Any]:
+        """Update an existing record using an external auth token."""
+        return self._request_with_token("PATCH", f"/api/collections/{collection}/records/{record_id}", token, json=data)
+
+    def delete_record_with_token(self, collection: str, record_id: str, token: str) -> bool:
+        """Delete a record using an external auth token."""
+        self._request_with_token("DELETE", f"/api/collections/{collection}/records/{record_id}", token)
+        return True
+
     def count_records(self, collection: str, filter_str: str = "") -> int:
         """Get total count of records in a collection (with optional filter).
 
