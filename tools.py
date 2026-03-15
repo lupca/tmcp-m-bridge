@@ -173,3 +173,21 @@ def count_records(collection: str, filter: str = "") -> str:
         return json.dumps({"collection": collection, "totalItems": count, "filter": filter or "(none)"}, indent=2)
     except Exception as e:
         return f"Error: {e}"
+
+@mcp.tool()
+def publish_facebook_variant(workspace_id: str, variant_id: str, auth_token: str = "") -> str:
+    """Publishes a facebook platform variant to the configured Facebook Page for a workspace.
+
+    Args:
+        workspace_id: Workspace record ID that owns the variant and facebook social account.
+        variant_id: platform_variants record ID to publish.
+        auth_token: Optional auth token from frontend user. If provided, uses this instead of bridge credentials.
+    """
+    try:
+        if auth_token:
+            result = pb_client.publish_facebook_variant_with_token(workspace_id, variant_id, auth_token)
+        else:
+            result = pb_client.publish_facebook_variant(workspace_id, variant_id)
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        return f"Error: {e}"

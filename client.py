@@ -232,6 +232,23 @@ class PocketBaseClient:
         self._request_with_token("DELETE", f"/api/collections/{collection}/records/{record_id}", token)
         return True
 
+    def publish_facebook_variant(self, workspace_id: str, variant_id: str) -> Dict[str, Any]:
+        """Publish a facebook platform variant through tmcp-dashboard custom endpoint."""
+        return self._request(
+            "POST",
+            "/api/social/facebook/posts",
+            json={"workspace_id": workspace_id, "variant_id": variant_id},
+        )
+
+    def publish_facebook_variant_with_token(self, workspace_id: str, variant_id: str, token: str) -> Dict[str, Any]:
+        """Publish a facebook platform variant using forwarded user auth token."""
+        return self._request_with_token(
+            "POST",
+            "/api/social/facebook/posts",
+            token,
+            json={"workspace_id": workspace_id, "variant_id": variant_id},
+        )
+
     def count_records(self, collection: str, filter_str: str = "") -> int:
         """Get total count of records in a collection (with optional filter).
 
